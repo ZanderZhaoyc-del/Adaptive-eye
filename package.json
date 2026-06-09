@@ -1,0 +1,15 @@
+{
+  "name": "adaptive-eye-cli",
+  "version": "0.1.0",
+  "description": "Reusable CLI for browser-use based accessibility audits.",
+  "type": "module",
+  "bin": {
+    "adaptive-eye": "./src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
