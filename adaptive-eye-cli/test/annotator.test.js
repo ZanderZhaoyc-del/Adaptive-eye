@@ -31,6 +31,31 @@ test('generates browser overlay script for issue bounding boxes by severity', ()
   assert.match(script, /Low contrast button/);
 });
 
+test('excludes false-positive finding indices from browser overlay script', () => {
+  const script = buildOverlayScript({
+    findings: [
+      {
+        severity: 'critical',
+        text: 'False positive button',
+        contrastRatio: 1,
+        boundingBox: { x: 10, y: 20, width: 100, height: 40 }
+      },
+      {
+        severity: 'warning',
+        text: 'Real issue link',
+        contrastRatio: 3.8,
+        boundingBox: { x: 50, y: 90, width: 120, height: 24 }
+      }
+    ]
+  }, {
+    excludedFindingIndices: [1]
+  });
+
+  assert.doesNotMatch(script, /False positive button/);
+  assert.match(script, /Real issue link/);
+  assert.match(script, /"index":2/);
+});
+
 test('inserts annotated screenshot section into markdown report', () => {
   const markdown = [
     '# Contrast Audit Report: Example',
@@ -91,4 +116,57 @@ test('runs annotation workflow and updates report artifacts', async () => {
   assert.match(files.get(reportPath), /annotatedScreenshotPath/);
   assert.match(files.get('reports/audit.md'), /Annotated Screenshot/);
   assert.match(files.get('reports/audit.md'), /!\[Annotated contrast issues\]\(audit-annotated\.png\)/);
+});
+
+test('runs annotation workflow excluding false positives from vision review', async () => {
+  const reportPath = 'reports/audit.json';
+  const visionReviewPath = 'reports/audit-vision-review.json';
+  const files = new Map([
+    [reportPath, JSON.stringify({
+      pageUrl: 'https://example.com',
+      pageTitle: 'Example',
+      pageDimensions: { width: 800, height: 600 },
+      findings: [
+        {
+          severity: 'critical',
+          text: 'False positive button',
+          contrastRatio: 1,
+          boundingBox: { x: 10, y: 20, width: 100, height: 40 }
+        },
+        {
+          severity: 'warning',
+          text: 'Real issue link',
+          contrastRatio: 3.8,
+          boundingBox: { x: 50, y: 90, width: 120, height: 24 }
+        }
+      ]
+    })],
+    [visionReviewPath, JSON.stringify({
+      findings: [
+        { index: 1, visionVerdict: 'false-positive' }
+      ]
+    })],
+    ['reports/audit.md', '# Contrast Audit Report: Example\n\n## Summary\n']
+  ]);
+  const calls = [];
+
+  await runAnnotation({
+    command: 'annotate',
+    reportPath,
+    visionReviewPath,
+    openBrowser: false
+  }, {
+    readTextFile: async (filePath) => files.get(filePath),
+    writeTextFile: async (filePath, content) => files.set(filePath, content),
+    ensureDir: async () => {},
+    runBrowserUse: async (args) => {
+      calls.push(args);
+      return { stdout: '' };
+    }
+  });
+
+  assert.equal(calls[0][0], 'eval');
+  assert.doesNotMatch(calls[0][1], /False positive button/);
+  assert.match(calls[0][1], /Real issue link/);
+  assert.match(files.get(reportPath), /annotationExcludedFindingIndices/);
 });

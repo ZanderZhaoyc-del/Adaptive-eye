@@ -25,6 +25,7 @@ export async function runAnnotation(options, dependencies = {}) {
   const annotatedScreenshotPath = path.join(outDir, `${baseName}-annotated.png`);
   const markdownPath = replaceExtension(options.reportPath, '.md');
   const warnings = Array.isArray(report.warnings) ? [...report.warnings] : [];
+  const excludedFindingIndices = await readExcludedFindingIndices(options.visionReviewPath, deps, warnings);
 
   await deps.ensureDir(outDir);
 
@@ -33,7 +34,7 @@ export async function runAnnotation(options, dependencies = {}) {
   }
 
   try {
-    await deps.runBrowserUse(['eval', buildOverlayScript(report)]);
+    await deps.runBrowserUse(['eval', buildOverlayScript(report, { excludedFindingIndices })]);
   } catch (error) {
     warnings.push(`Annotation overlay injection failed: ${error.message || error}`);
   }
@@ -47,6 +48,8 @@ export async function runAnnotation(options, dependencies = {}) {
   const updatedReport = {
     ...report,
     annotatedScreenshotPath,
+    annotationVisionReviewPath: options.visionReviewPath || '',
+    annotationExcludedFindingIndices: excludedFindingIndices,
     warnings
   };
   await deps.writeTextFile(options.reportPath, `${JSON.stringify(updatedReport, null, 2)}\n`);
@@ -70,16 +73,18 @@ export async function runAnnotation(options, dependencies = {}) {
   };
 }
 
-export function buildOverlayScript(report) {
+export function buildOverlayScript(report, options = {}) {
   const findings = Array.isArray(report.findings) ? report.findings : [];
+  const excludedFindingIndices = new Set(options.excludedFindingIndices || []);
   const overlays = findings
-    .filter((finding) => hasBoundingBox(finding))
+    .map((finding, index) => ({ finding, reportIndex: index + 1 }))
+    .filter(({ finding, reportIndex }) => hasBoundingBox(finding) && !excludedFindingIndices.has(reportIndex))
     .map((finding, index) => ({
-      index: index + 1,
-      severity: finding.severity || 'warning',
-      text: finding.text || '',
-      contrastRatio: finding.contrastRatio,
-      boundingBox: finding.boundingBox
+      index: finding.reportIndex,
+      severity: finding.finding.severity || 'warning',
+      text: finding.finding.text || '',
+      contrastRatio: finding.finding.contrastRatio,
+      boundingBox: finding.finding.boundingBox
     }));
 
   return `(() => {
@@ -133,6 +138,23 @@ export function buildOverlayScript(report) {
   document.documentElement.appendChild(layer);
   return { status: 'annotated', boxes: findings.length };
 })()`;
+}
+
+async function readExcludedFindingIndices(visionReviewPath, deps, warnings) {
+  if (!visionReviewPath) {
+    return [];
+  }
+
+  try {
+    const review = JSON.parse(await deps.readTextFile(visionReviewPath));
+    return (Array.isArray(review.findings) ? review.findings : [])
+      .filter((finding) => String(finding.visionVerdict || '').toLowerCase() === 'false-positive')
+      .map((finding) => Number(finding.index))
+      .filter((index) => Number.isInteger(index) && index > 0);
+  } catch (error) {
+    warnings.push(`Vision review exclusion skipped: ${error.message || error}`);
+    return [];
+  }
 }
 
 export function buildAnnotatedMarkdown(markdown, annotatedScreenshotPath) {

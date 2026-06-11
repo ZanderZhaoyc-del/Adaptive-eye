@@ -62,12 +62,15 @@ test('parses annotate command options', () => {
     'reports/audit.json',
     '--out-dir',
     'reports/annotated',
+    '--vision-review',
+    'reports/audit-vision-review.json',
     '--no-open'
   ]);
 
   assert.equal(options.command, 'annotate');
   assert.equal(options.reportPath, 'reports/audit.json');
   assert.equal(options.outDir, 'reports/annotated');
+  assert.equal(options.visionReviewPath, 'reports/audit-vision-review.json');
   assert.equal(options.openBrowser, false);
 });
 

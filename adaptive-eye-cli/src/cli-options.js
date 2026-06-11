@@ -49,6 +49,7 @@ export function helpText() {
     '',
     'Annotate options:',
     '  --out-dir <path>               Output directory. Default: report directory',
+    '  --vision-review <json>         Exclude findings marked false-positive by vision review',
     '  --no-open                      Skip browser-use open before screenshot.',
     '  -h, --help                     Show help.'
   ].join('\n');
@@ -178,6 +179,7 @@ function parseAnnotateArgs(reportPath, rest) {
     command: 'annotate',
     reportPath,
     outDir: undefined,
+    visionReviewPath: undefined,
     openBrowser: true
   };
 
@@ -186,6 +188,12 @@ function parseAnnotateArgs(reportPath, rest) {
 
     if (flag === '--out-dir') {
       options.outDir = readFlagValue(rest, index, flag);
+      index += 1;
+      continue;
+    }
+
+    if (flag === '--vision-review') {
+      options.visionReviewPath = readFlagValue(rest, index, flag);
       index += 1;
       continue;
     }
