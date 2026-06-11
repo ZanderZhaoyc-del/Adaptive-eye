@@ -3,6 +3,16 @@
 
   try {
     function parseColor(colorStr) {
+      const directMatch = String(colorStr || '').match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/);
+      if (directMatch) {
+        return {
+          r: parseInt(directMatch[1], 10),
+          g: parseInt(directMatch[2], 10),
+          b: parseInt(directMatch[3], 10),
+          a: directMatch[4] !== undefined ? parseFloat(directMatch[4]) : 1
+        };
+      }
+
       const div = document.createElement('div');
       div.style.color = colorStr;
       document.body.appendChild(div);
@@ -72,6 +82,39 @@
       return text.trim().length > 0;
     }
 
+    function hasDirectTextContent(el) {
+      const childNodes = el.childNodes || [];
+      for (let i = 0; i < childNodes.length; i += 1) {
+        const node = childNodes[i];
+        if (node.nodeType === 3 && (node.textContent || '').trim().length > 0) {
+          return true;
+        }
+      }
+
+      return (!el.children || el.children.length === 0) && hasTextContent(el);
+    }
+
+    function hasVisibleTextChild(el) {
+      const children = el.children || [];
+      for (let i = 0; i < children.length; i += 1) {
+        const child = children[i];
+        if (isVisible(child) && hasTextContent(child)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function isTextCandidate(el) {
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'script' || tag === 'style' || tag === 'noscript' || tag === 'template') {
+        return false;
+      }
+
+      return hasDirectTextContent(el) || !hasVisibleTextChild(el);
+    }
+
     function getTextElements() {
       const selectors = [
         'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -83,7 +126,7 @@
 
       for (let i = 0; i < allElements.length; i += 1) {
         const el = allElements[i];
-        if (isVisible(el) && hasTextContent(el)) {
+        if (isVisible(el) && hasTextContent(el) && isTextCandidate(el)) {
           textElements.push(el);
         }
       }
