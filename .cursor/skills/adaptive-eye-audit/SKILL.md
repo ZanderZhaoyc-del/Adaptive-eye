@@ -9,7 +9,7 @@ Use this skill for normal single-page color contrast accessibility audits. The C
 
 ## Default Workflow
 
-Run from `c:\adaptive-eye`:
+Run from the project root directory:
 
 ```bash
 node adaptive-eye-cli/src/cli.js page <url> --report both

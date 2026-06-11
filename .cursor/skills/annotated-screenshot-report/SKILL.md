@@ -9,7 +9,7 @@ Use this skill after an Adaptive Eye audit has produced a JSON report.
 
 ## Command
 
-Run from `c:\adaptive-eye`:
+Run from the project root directory:
 
 ```bash
 node adaptive-eye-cli/src/cli.js annotate <report-json>

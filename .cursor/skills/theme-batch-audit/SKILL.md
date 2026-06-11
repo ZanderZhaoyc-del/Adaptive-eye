@@ -11,7 +11,7 @@ Prefer the bundled CLI. Do not manually recreate theme switching, per-theme audi
 
 ## Command
 
-Run from `c:\adaptive-eye`:
+Run from the project root directory:
 
 ```bash
 node adaptive-eye-cli/src/cli.js themes <url>
