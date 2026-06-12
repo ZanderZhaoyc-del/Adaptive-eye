@@ -17,11 +17,12 @@ Inputs:
 
 Rules:
 1. Review only the listed findings. The caller has already filtered them to DOM contrast ratio 1.
-2. Use the screenshot as visual evidence. If the target is not visible, hidden, too small, covered, cropped, or affected by an annotation overlay, mark it inconclusive.
-3. Keep DOM contrast data and visual judgment separate.
-4. Do not call a finding false-positive just because it subjectively looks acceptable. Give a concrete reason, such as the DOM text/background pairing appears wrong, the element is not visible, or the visible target has a different background than the DOM report states.
-5. If an annotated screenshot is used, remember red/orange boxes may alter local perception. Account for that in your reasoning.
-6. Prefer conservative judgments when the image is ambiguous.
+2. Use the screenshot as visual evidence. Each finding's `boundingBox` is `{ x, y, width, height }` in CSS pixels relative to the full-page screenshot origin (top-left). Use those coordinates to locate the element in the image.
+3. If the target is not visible, hidden, too small, covered, cropped, or off-screen, mark it inconclusive. If the screenshot type is `cleanScreenshotPath` you will not see overlay boxes; rely on the bounding box coordinates plus the element's text/color to identify the target.
+4. Keep DOM contrast data and visual judgment separate.
+5. Do not call a finding false-positive just because it subjectively looks acceptable. Give a concrete reason, such as the DOM text/background pairing appears wrong, the element is not visible, or the visible target has a different background than the DOM report states.
+6. If the screenshot type is `annotatedScreenshotPath`, red/orange overlay boxes may alter local perception. Account for that in your reasoning.
+7. Prefer conservative judgments when the image is ambiguous.
 
 Return only valid JSON with this shape:
 {

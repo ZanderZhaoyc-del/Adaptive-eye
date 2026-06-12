@@ -16,7 +16,18 @@ const env = {
 };
 
 const report = JSON.parse(readFileSync(options.reportPath, 'utf8'));
-const screenshotPath = options.screenshotPath || report.annotatedScreenshotPath || report.screenshotPath || '';
+const screenshotPath = options.screenshotPath
+  || report.cleanScreenshotPath
+  || report.annotatedScreenshotPath
+  || report.screenshotPath
+  || '';
+const screenshotType = options.screenshotPath
+  ? 'override'
+  : report.cleanScreenshotPath && screenshotPath === report.cleanScreenshotPath
+    ? 'cleanScreenshotPath'
+    : report.annotatedScreenshotPath && screenshotPath === report.annotatedScreenshotPath
+      ? 'annotatedScreenshotPath'
+      : 'screenshotPath';
 const outputBase = options.reportPath.replace(/\.json$/i, '-vision-review');
 const reviewJsonPath = `${outputBase}.json`;
 const reviewMdPath = `${outputBase}.md`;
@@ -175,7 +186,7 @@ function buildPrompt(findings) {
   return promptTemplate
     .replaceAll('{{pageUrl}}', report.pageUrl || '')
     .replaceAll('{{pageTitle}}', report.pageTitle || '')
-    .replaceAll('{{screenshotType}}', report.annotatedScreenshotPath ? 'annotatedScreenshotPath' : 'screenshotPath')
+    .replaceAll('{{screenshotType}}', screenshotType)
     .replaceAll('{{screenshotPath}}', screenshotPath)
     .replaceAll('{{findingsJson}}', JSON.stringify(findings, null, 2));
 }

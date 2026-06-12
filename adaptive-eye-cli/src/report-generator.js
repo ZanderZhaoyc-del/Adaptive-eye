@@ -108,8 +108,8 @@ export function buildThemeBatchIndex({
 
 export function generateThemeBatchMarkdownReport(batch) {
   const rows = [
-    '| Theme | Result | Issues Found | Critical | Warning | JSON Report | Markdown Report | Annotated Screenshot |',
-    '|-------|--------|--------------|----------|---------|-------------|-----------------|----------------------|'
+    '| Theme | Result | Issues Found | Critical | Warning | JSON Report | Markdown Report | Clean Screenshot | Annotated Screenshot |',
+    '|-------|--------|--------------|----------|---------|-------------|-----------------|------------------|----------------------|'
   ];
 
   batch.results.forEach((result) => {
@@ -121,6 +121,7 @@ export function generateThemeBatchMarkdownReport(batch) {
       result.summary?.warningIssues ?? 0,
       formatOptionalPath(result.reportPaths?.json),
       formatOptionalPath(result.reportPaths?.markdown),
+      formatOptionalPath(result.reportPaths?.cleanScreenshot),
       formatOptionalPath(result.reportPaths?.annotatedScreenshot)
     ].join(' | ').replace(/^/, '| ').replace(/$/, ' |'));
   });

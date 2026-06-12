@@ -35,6 +35,7 @@ export async function runPageAudit(options, dependencies = {}) {
   const rawResult = parseBrowserUseJsonOutput(evalResult.stdout);
   const fallbackRequired = rawResult.status === 'empty' || rawResult.status === 'error';
   let screenshotPath = '';
+  let cleanScreenshotPath = '';
   const warnings = [];
 
   if (fallbackRequired && options.screenshotOnFallback) {
@@ -53,6 +54,17 @@ export async function runPageAudit(options, dependencies = {}) {
   });
 
   const reportBaseName = buildReportFileName(normalized.pageUrl || options.url, now).replace(/\.md$/, '');
+
+  if (options.captureCleanScreenshot) {
+    const requestedCleanPath = path.join(outDir, `${reportBaseName}-clean.png`);
+    try {
+      await deps.runBrowserUse(['screenshot', requestedCleanPath, '--full']);
+      cleanScreenshotPath = requestedCleanPath;
+    } catch (error) {
+      warnings.push(`Clean screenshot capture failed: ${error.message || error}`);
+    }
+  }
+
   const writtenFiles = [];
 
   if (options.report === 'json' || options.report === 'both') {
@@ -61,6 +73,7 @@ export async function runPageAudit(options, dependencies = {}) {
       ...normalized,
       fallbackRequired,
       screenshotPath,
+      cleanScreenshotPath,
       warnings
     }, null, 2)}\n`);
     writtenFiles.push(jsonPath);
@@ -77,9 +90,21 @@ export async function runPageAudit(options, dependencies = {}) {
     outDir,
     fallbackRequired,
     screenshotPath,
+    cleanScreenshotPath,
     warnings,
     writtenFiles
   };
+}
+
+export async function openBrowserSession(url, dependencies = {}) {
+  const runBrowserUse = dependencies.runBrowserUse || defaultRunBrowserUse;
+  await runBrowserUse(['open', url]);
+}
+
+export async function reloadCurrentSession(dependencies = {}) {
+  const runBrowserUse = dependencies.runBrowserUse || defaultRunBrowserUse;
+  const reloadScript = `JSON.stringify((() => { try { location.reload(); return { reloaded: true }; } catch (error) { return { reloaded: false, error: String(error) }; } })())`;
+  await runBrowserUse(['eval', reloadScript]);
 }
 
 export function parseBrowserUseJsonOutput(output) {

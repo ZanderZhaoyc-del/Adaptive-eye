@@ -31,12 +31,15 @@ Read these fields when available:
 - `pageUrl`, `pageTitle`, `generatedAt`
 - `summary.issuesFound`, `summary.criticalIssues`, `summary.warningIssues`
 - `findings[].text`, `tag`, `color`, `backgroundColor`, `fontSize`, `fontWeight`, `contrastRatio`, `severity`, `boundingBox`
+- `cleanScreenshotPath`
 - `screenshotPath`
 - `annotatedScreenshotPath`
 - `fallbackRequired`
 - `warnings`
 
-Prefer `annotatedScreenshotPath` when it exists because it shows issue boxes. Otherwise use `screenshotPath`; if neither exists, run the annotation workflow or capture a screenshot before requesting visual review.
+Screenshot priority (highest first): `cleanScreenshotPath` > `annotatedScreenshotPath` > `screenshotPath`. The bundled script applies this order automatically. A clean (overlay-free) screenshot is preferred because annotation overlay boxes can distort the model's perception of nearby pixels; the model uses each finding's `boundingBox` (CSS pixels relative to the full-page screenshot origin) to locate elements.
+
+If no screenshot field is set, run the annotation workflow or capture a clean screenshot before requesting visual review.
 
 ## Model Configuration
 
@@ -64,9 +67,10 @@ If the configured model or endpoint does not accept image inputs, stop the visua
 
 1. Read the JSON report and confirm it has findings or fallback evidence.
 2. Select the screenshot:
-   - Use `annotatedScreenshotPath` first.
-   - Use `screenshotPath` second.
-   - If neither exists and findings have `boundingBox`, run `node adaptive-eye-cli/src/cli.js annotate <report-json>`.
+   - Use `cleanScreenshotPath` first (preferred — no overlay distortion).
+   - Use `annotatedScreenshotPath` second.
+   - Use `screenshotPath` third.
+   - If none exist and findings have `boundingBox`, run `node adaptive-eye-cli/src/cli.js page <url> --screenshot` (or `cli themes <url> --screenshot`) to produce a clean image, or `cli annotate <report-json>` for an annotated one.
    - If no screenshot can be produced, stop with `vision_review_unavailable`.
 3. Run the bundled review script, which loads `.env` from the repository root and filters to DOM ratio `1` by default:
    ```bash
@@ -139,11 +143,11 @@ Allowed `visionVerdict` values:
 - Keep DOM measurements and vision verdicts separate.
 - Review only DOM `contrastRatio` equal to `1`; ignore other contrast issues in the vision review report.
 - Include enough element information in each vision finding for the user to identify it: original index, tag, text, color, background color, font size, font weight, and bounding box.
-- If a reviewed finding is `false-positive`, pass the vision review JSON to annotation so that finding is excluded from the annotated screenshot.
+- If a reviewed finding is `false-positive`, pass the vision review JSON to annotation so that finding is excluded from the annotated screenshot. The annotation overwrites any earlier first-pass overlay at the same `<base>-annotated.png` path.
 - Do not downgrade a WCAG failure solely because the page "looks okay"; require a concrete visual reason.
 - Do not claim full accessibility coverage. This reviews visible contrast findings only.
 - Mention model/provider failures as warnings, not as audit passes.
-- If only an annotated screenshot is available, account for overlay boxes possibly changing perception near the target.
+- If a clean screenshot is used, rely on each finding's `boundingBox` for spatial localization; if only an annotated screenshot is available, account for overlay boxes possibly changing perception near the target.
 - If bounding boxes are offscreen, tiny, hidden, or covered, mark the finding `inconclusive`.
 
 ## Reference
