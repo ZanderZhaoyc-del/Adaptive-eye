@@ -195,3 +195,79 @@ test('continues writing reports when fallback screenshot capture fails', async (
   assert.equal(written.size, 1);
   assert.match([...written.values()][0], /Cannot take screenshot with 0 width/);
 });
+
+test('captures clean screenshot when captureCleanScreenshot is enabled', async () => {
+  const calls = [];
+  const written = new Map();
+
+  const result = await runPageAudit({
+    url: 'https://example.com',
+    outDir: 'reports',
+    report: 'json',
+    openBrowser: false,
+    screenshotOnFallback: false,
+    captureCleanScreenshot: true,
+    now: new Date('2026-06-04T08:09:10.000Z')
+  }, {
+    readTextFile: async () => 'return {"status":"success"};',
+    writeTextFile: async (filePath, content) => written.set(filePath, content),
+    ensureDir: async () => {},
+    runBrowserUse: async (args) => {
+      calls.push(args);
+      if (args[0] === 'eval') {
+        return {
+          stdout: JSON.stringify({
+            status: 'success',
+            pageUrl: 'https://example.com',
+            pageTitle: 'Example',
+            summary: { totalElements: 1 },
+            issues: []
+          })
+        };
+      }
+      return { stdout: '' };
+    }
+  });
+
+  assert.equal(result.fallbackRequired, false);
+  assert.match(result.cleanScreenshotPath, /-clean\.png$/);
+  assert.deepEqual(
+    calls.find((args) => args[0] === 'screenshot'),
+    ['screenshot', result.cleanScreenshotPath, '--full']
+  );
+  const writtenJson = JSON.parse([...written.values()][0]);
+  assert.equal(writtenJson.cleanScreenshotPath, result.cleanScreenshotPath);
+});
+
+test('records warning when clean screenshot capture fails', async () => {
+  const result = await runPageAudit({
+    url: 'https://example.com',
+    outDir: 'reports',
+    report: 'json',
+    openBrowser: false,
+    screenshotOnFallback: false,
+    captureCleanScreenshot: true,
+    now: new Date('2026-06-04T08:09:10.000Z')
+  }, {
+    readTextFile: async () => 'return {"status":"success"};',
+    writeTextFile: async () => {},
+    ensureDir: async () => {},
+    runBrowserUse: async (args) => {
+      if (args[0] === 'eval') {
+        return {
+          stdout: JSON.stringify({
+            status: 'success',
+            pageUrl: 'https://example.com',
+            pageTitle: 'Example',
+            summary: { totalElements: 1 },
+            issues: []
+          })
+        };
+      }
+      throw new Error('clean screenshot failed');
+    }
+  });
+
+  assert.equal(result.cleanScreenshotPath, '');
+  assert.ok(result.warnings.some((warning) => /Clean screenshot capture failed/.test(warning)));
+});

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vision Contrast Review"
+  short_description: "Use a vision model to review reported contrast issues."
+  default_prompt: "Use $vision-contrast-review to review Adaptive Eye contrast findings with a vision model."

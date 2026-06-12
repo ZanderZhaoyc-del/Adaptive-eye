@@ -12,6 +12,13 @@ test('parses page audit command with defaults', () => {
   assert.equal(options.outDir, undefined);
   assert.equal(options.openBrowser, true);
   assert.equal(options.screenshotOnFallback, true);
+  assert.equal(options.captureCleanScreenshot, false);
+});
+
+test('parses --screenshot flag for page command', () => {
+  const options = parseCliArgs(['page', 'https://example.com', '--screenshot']);
+
+  assert.equal(options.captureCleanScreenshot, true);
 });
 
 test('parses optional CLI flags', () => {
@@ -62,12 +69,15 @@ test('parses annotate command options', () => {
     'reports/audit.json',
     '--out-dir',
     'reports/annotated',
+    '--vision-review',
+    'reports/audit-vision-review.json',
     '--no-open'
   ]);
 
   assert.equal(options.command, 'annotate');
   assert.equal(options.reportPath, 'reports/audit.json');
   assert.equal(options.outDir, 'reports/annotated');
+  assert.equal(options.visionReviewPath, 'reports/audit-vision-review.json');
   assert.equal(options.openBrowser, false);
 });
 
@@ -81,6 +91,13 @@ test('parses themes command with default theme order', () => {
   assert.equal(options.annotate, false);
   assert.equal(options.openBrowser, true);
   assert.equal(options.screenshotOnFallback, true);
+  assert.equal(options.captureCleanScreenshot, false);
+});
+
+test('parses --screenshot flag for themes command', () => {
+  const options = parseCliArgs(['themes', 'https://example.com', '--screenshot']);
+
+  assert.equal(options.captureCleanScreenshot, true);
 });
 
 test('parses explicit themes command options in caller order', () => {

@@ -34,6 +34,7 @@ export function helpText() {
     'Page options:',
     '  --report <json|markdown|both>  Report output format. Default: both',
     '  --out-dir <path>               Output directory. Default: reports/adaptive-eye-YYYY-MM-DD-HHMM',
+    '  --screenshot                   Capture a clean full-page screenshot (no overlay) for vision review.',
     '  --script <path>                Browser eval script path.',
     '  --no-open                      Skip browser-use open.',
     '  --no-screenshot                Skip fallback screenshot capture.',
@@ -42,13 +43,16 @@ export function helpText() {
     '  --themes <list>                Comma-separated list: none,aquatic,desert,dusk,night-sky',
     '  --report <json|markdown|both>  Report output format. Default: both',
     '  --out-dir <path>               Output directory. Default: reports/adaptive-eye-YYYY-MM-DD-HHMM',
-    '  --annotate                     Generate annotated screenshot per theme after JSON report creation',
+    '  --screenshot                   Capture a clean per-theme screenshot (recommended; feeds vision-contrast-review).',
+    '  --annotate                     Generate annotated screenshot per theme after JSON report creation.',
+    '  --reload-between-themes        Reload page between themes (use only when site reads contrast theme at load time).',
     '  --script <path>                Browser eval script path.',
     '  --no-open                      Skip browser-use open.',
     '  --no-screenshot                Skip fallback screenshot capture.',
     '',
     'Annotate options:',
     '  --out-dir <path>               Output directory. Default: report directory',
+    '  --vision-review <json>         Exclude findings marked false-positive by vision review',
     '  --no-open                      Skip browser-use open before screenshot.',
     '  -h, --help                     Show help.'
   ].join('\n');
@@ -66,7 +70,8 @@ function parsePageArgs(command, url, rest) {
     outDir: undefined,
     scriptPath: undefined,
     openBrowser: true,
-    screenshotOnFallback: true
+    screenshotOnFallback: true,
+    captureCleanScreenshot: false
   };
 
   for (let index = 0; index < rest.length; index += 1) {
@@ -97,6 +102,11 @@ function parsePageArgs(command, url, rest) {
 
     if (flag === '--no-screenshot') {
       options.screenshotOnFallback = false;
+      continue;
+    }
+
+    if (flag === '--screenshot') {
+      options.captureCleanScreenshot = true;
       continue;
     }
 
@@ -114,7 +124,8 @@ function parseThemesArgs(url, rest) {
   const options = {
     ...parsePageArgs('themes', url, []),
     themes: [...SUPPORTED_CONTRAST_THEMES],
-    annotate: false
+    annotate: false,
+    reloadBetweenThemes: false
   };
 
   for (let index = 0; index < rest.length; index += 1) {
@@ -128,6 +139,11 @@ function parseThemesArgs(url, rest) {
 
     if (flag === '--annotate') {
       options.annotate = true;
+      continue;
+    }
+
+    if (flag === '--reload-between-themes') {
+      options.reloadBetweenThemes = true;
       continue;
     }
 
@@ -156,6 +172,11 @@ function parseThemesArgs(url, rest) {
 
     if (flag === '--no-screenshot') {
       options.screenshotOnFallback = false;
+      continue;
+    }
+
+    if (flag === '--screenshot') {
+      options.captureCleanScreenshot = true;
       continue;
     }
 
@@ -178,6 +199,7 @@ function parseAnnotateArgs(reportPath, rest) {
     command: 'annotate',
     reportPath,
     outDir: undefined,
+    visionReviewPath: undefined,
     openBrowser: true
   };
 
@@ -186,6 +208,12 @@ function parseAnnotateArgs(reportPath, rest) {
 
     if (flag === '--out-dir') {
       options.outDir = readFlagValue(rest, index, flag);
+      index += 1;
+      continue;
+    }
+
+    if (flag === '--vision-review') {
+      options.visionReviewPath = readFlagValue(rest, index, flag);
       index += 1;
       continue;
     }
